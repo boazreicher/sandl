@@ -1,0 +1,2099 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>בראול סטארס: נחשים וסולמות</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Nunito:wght@700;900&display=swap');
+
+  :root {
+    --board-size: min(85vmin, 720px);
+    --cell-size: calc(var(--board-size) / 10);
+    --bg-dark: #1a0a2e;
+    --bg-mid: #2d1450;
+    --accent-yellow: #ffd700;
+    --accent-blue: #00bfff;
+    --accent-red: #ff4060;
+    --accent-green: #39ff14;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: linear-gradient(135deg, var(--bg-dark), var(--bg-mid));
+    color: #fff;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    overflow-x: hidden;
+  }
+
+  h1 {
+    font-family: 'Bungee', cursive;
+    font-size: clamp(1.4rem, 4vw, 2.2rem);
+    text-align: center;
+    margin: 12px 0 4px;
+    background: linear-gradient(90deg, var(--accent-yellow), var(--accent-red));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-shadow: none;
+    filter: drop-shadow(0 2px 6px rgba(255, 64, 96, .5));
+  }
+
+  .subtitle {
+    font-size: .85rem;
+    color: #b8a0d8;
+    margin-bottom: 8px;
+    text-align: center;
+  }
+
+  /* ---- Setup Screen ---- */
+  #setup {
+    background: rgba(45, 20, 80, .85);
+    border: 2px solid var(--accent-yellow);
+    border-radius: 16px;
+    padding: 28px 32px;
+    max-width: 420px;
+    width: 90%;
+    margin-top: 10px;
+    box-shadow: 0 0 30px rgba(255, 215, 0, .15);
+  }
+
+  #setup h2 {
+    font-family: 'Bungee', cursive;
+    color: var(--accent-yellow);
+    font-size: 1.2rem;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .player-setup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 8px 0;
+    padding: 8px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .06);
+  }
+
+  .player-setup .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+    overflow: hidden;
+    border: 2px solid rgba(255,255,255,.4);
+  }
+
+  .player-setup .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .player-setup input {
+    flex: 1;
+    background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .2);
+    border-radius: 8px;
+    padding: 6px 10px;
+    color: #fff;
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: .9rem;
+  }
+
+  .player-setup input::placeholder { color: rgba(255, 255, 255, .35); }
+
+  .player-setup .toggle-btn {
+    background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .2);
+    color: #aaa;
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-size: .75rem;
+    font-weight: 700;
+    transition: all .2s;
+  }
+
+  .player-setup .toggle-btn.active {
+    background: var(--accent-green);
+    color: #000;
+    border-color: var(--accent-green);
+  }
+
+  .player-setup .power-label {
+    font-size: .65rem;
+    color: #b8a0d8;
+    text-align: center;
+    width: 100%;
+    margin-top: -2px;
+  }
+
+  /* Power button */
+  .power-btn {
+    display: block;
+    margin: 8px auto 4px;
+    padding: 7px 18px;
+    font-family: 'Bungee', cursive;
+    font-size: .75rem;
+    border: 2px solid var(--accent-yellow);
+    border-radius: 10px;
+    cursor: pointer;
+    background: linear-gradient(135deg, rgba(255, 215, 0, .15), rgba(255, 160, 0, .15));
+    color: var(--accent-yellow);
+    transition: all .2s;
+    box-shadow: 0 0 10px rgba(255, 215, 0, .15);
+  }
+
+  .power-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, rgba(255, 215, 0, .3), rgba(255, 160, 0, .3));
+    box-shadow: 0 0 18px rgba(255, 215, 0, .3);
+    transform: scale(1.05);
+  }
+
+  .power-btn:disabled {
+    opacity: .3;
+    cursor: default;
+    border-color: #666;
+    color: #666;
+  }
+
+  .power-btn.activated {
+    background: linear-gradient(135deg, var(--accent-yellow), #ffaa00);
+    color: var(--bg-dark);
+    animation: powerGlow 1s ease-in-out infinite alternate;
+  }
+
+  @keyframes powerGlow {
+    0% { box-shadow: 0 0 8px rgba(255, 215, 0, .3); }
+    100% { box-shadow: 0 0 20px rgba(255, 215, 0, .6); }
+  }
+
+  .power-desc {
+    font-size: .65rem;
+    color: #b8a0d8;
+    text-align: center;
+    margin-top: 2px;
+    min-height: 1.3em;
+  }
+
+  .btn {
+    display: block;
+    margin: 18px auto 0;
+    padding: 12px 36px;
+    font-family: 'Bungee', cursive;
+    font-size: 1rem;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent-yellow), #ffaa00);
+    color: #1a0a2e;
+    box-shadow: 0 4px 15px rgba(255, 215, 0, .4);
+    transition: transform .15s, box-shadow .15s;
+  }
+
+  .btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(255, 215, 0, .55); }
+  .btn:active { transform: translateY(0); }
+  .btn:disabled { opacity: .4; cursor: default; transform: none; }
+
+  /* ---- Game Screen ---- */
+  #game { display: none; width: 100%; max-width: 1200px; padding: 0 12px; }
+
+  .game-layout {
+    display: flex;
+    gap: 16px;
+    justify-content: center;
+    align-items: flex-start;
+    flex-wrap: nowrap;
+  }
+
+  /* ---- Board ---- */
+  .board-wrapper {
+    position: relative;
+    width: var(--board-size);
+    height: var(--board-size);
+    flex-shrink: 0;
+  }
+
+  .board {
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    grid-template-rows: repeat(10, 1fr);
+    border: 3px solid var(--accent-yellow);
+    border-radius: 12px;
+    overflow: hidden;
+    position: relative;
+    z-index: 1;
+    direction: ltr;
+  }
+
+  .cell {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(.55rem, 1.5vmin, .75rem);
+    font-weight: 900;
+    color: rgba(255, 255, 255, .7);
+    border: 1px solid rgba(255, 255, 255, .08);
+    transition: background .2s;
+  }
+
+  .cell.light { background: rgba(100, 60, 160, .35); }
+  .cell.dark  { background: rgba(60, 30, 110, .5); }
+  .cell.start { background: rgba(57, 255, 20, .18); }
+  .cell.finish { background: rgba(255, 215, 0, .25); }
+
+  .cell .num {
+    position: absolute;
+    top: 1px;
+    left: 3px;
+    right: auto;
+    font-size: clamp(.45rem, 1.1vmin, .6rem);
+    opacity: .5;
+    direction: ltr;
+  }
+
+  /* Chute / Ladder cell highlights */
+
+  .cell.star-cell {
+    background: rgba(255, 215, 0, .12) !important;
+  }
+
+  .cell.star-cell .star-icon {
+    position: absolute;
+    font-size: clamp(.7rem, 1.8vmin, 1rem);
+    bottom: 0;
+    right: 2px;
+    opacity: .7;
+    animation: starPulse 2s ease-in-out infinite;
+  }
+
+  @keyframes starPulse {
+    0%, 100% { transform: scale(1); opacity: .6; }
+    50% { transform: scale(1.2); opacity: 1; }
+  }
+
+  /* ---- Mini-game overlay ---- */
+  .minigame-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .75);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .minigame-overlay.show { display: flex; }
+
+  .minigame-card {
+    background: linear-gradient(135deg, #2d1450, #3a1a6a);
+    border: 3px solid var(--accent-yellow);
+    border-radius: 20px;
+    padding: 24px 28px;
+    text-align: center;
+    width: 90%;
+    max-width: 400px;
+    box-shadow: 0 0 40px rgba(255, 215, 0, .2);
+    animation: popIn .3s cubic-bezier(.2, .8, .3, 1.2);
+  }
+
+  .minigame-card h2 {
+    font-family: 'Bungee', cursive;
+    font-size: 1.3rem;
+    color: var(--accent-yellow);
+    margin-bottom: 4px;
+  }
+
+  .minigame-card .mg-subtitle {
+    font-size: .8rem;
+    color: #b8a0d8;
+    margin-bottom: 14px;
+  }
+
+  .minigame-card .mg-timer {
+    font-family: 'Bungee', cursive;
+    font-size: 1.6rem;
+    color: var(--accent-red);
+    margin-bottom: 10px;
+  }
+
+  .minigame-card .mg-area {
+    min-height: 160px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* Whack-a-mole grid */
+  .mole-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 220px;
+  }
+
+  .mole-hole {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: rgba(80, 40, 120, .6);
+    border: 2px solid rgba(255,255,255,.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    cursor: pointer;
+    transition: transform .1s, background .15s;
+    user-select: none;
+  }
+
+  .mole-hole:active { transform: scale(.9); }
+  .mole-hole.hit { background: rgba(57, 255, 20, .3); border-color: var(--accent-green); }
+  .mole-hole.miss { background: rgba(255, 64, 96, .3); border-color: var(--accent-red); }
+
+  /* Math challenge */
+  .math-problem {
+    font-family: 'Bungee', cursive;
+    font-size: 2rem;
+    color: #fff;
+    margin: 10px 0;
+  }
+
+  .math-answers {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .math-answers button {
+    width: 64px;
+    height: 52px;
+    border-radius: 12px;
+    border: 2px solid rgba(255,255,255,.2);
+    background: rgba(80, 40, 120, .6);
+    color: #fff;
+    font-family: 'Bungee', cursive;
+    font-size: 1.3rem;
+    cursor: pointer;
+    transition: transform .1s, background .15s;
+  }
+
+  .math-answers button:hover { background: rgba(100, 60, 160, .8); transform: scale(1.05); }
+  .math-answers button.correct { background: rgba(57, 255, 20, .4); border-color: var(--accent-green); }
+  .math-answers button.wrong { background: rgba(255, 64, 96, .4); border-color: var(--accent-red); }
+
+  /* Catch the star */
+  .catch-area {
+    position: relative;
+    width: 260px;
+    height: 180px;
+    background: rgba(60, 30, 110, .4);
+    border-radius: 16px;
+    border: 2px solid rgba(255,255,255,.1);
+    overflow: hidden;
+    cursor: pointer;
+  }
+
+  .catch-star {
+    position: absolute;
+    font-size: 2rem;
+    cursor: pointer;
+    user-select: none;
+    transition: left .05s, top .05s;
+    filter: drop-shadow(0 0 6px rgba(255, 215, 0, .6));
+  }
+
+  /* Color sequence */
+  .color-display {
+    display: flex;
+    gap: 10px;
+    margin: 10px 0;
+    justify-content: center;
+  }
+
+  .color-bubble {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.3);
+    transition: transform .2s, opacity .3s;
+  }
+
+  .color-bubble.flash { transform: scale(1.25); border-color: #fff; box-shadow: 0 0 15px rgba(255,255,255,.4); }
+
+  .color-buttons {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .color-buttons button {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,.2);
+    cursor: pointer;
+    transition: transform .1s;
+  }
+
+  .color-buttons button:hover { transform: scale(1.1); }
+  .color-buttons button:active { transform: scale(.9); }
+
+  /* Result flash */
+  .mg-result {
+    font-family: 'Bungee', cursive;
+    font-size: 1.5rem;
+    margin-top: 10px;
+    min-height: 2rem;
+  }
+
+  .mg-result.win { color: var(--accent-green); }
+  .mg-result.lose { color: var(--accent-red); }
+
+  .mg-score {
+    font-size: .9rem;
+    color: #b8a0d8;
+    margin: 4px 0;
+  }
+
+  /* SVG overlay for chutes & ladders lines */
+  .overlay-svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Player tokens on the board */
+  .token {
+    position: absolute;
+    width: clamp(22px, 4vmin, 32px);
+    height: clamp(22px, 4vmin, 32px);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(11px, 2.2vmin, 16px);
+    z-index: 10;
+    transition: left .45s cubic-bezier(.4,0,.2,1), top .45s cubic-bezier(.4,0,.2,1);
+    filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
+    border: 2px solid rgba(255,255,255,.6);
+    overflow: hidden;
+  }
+
+  .token img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* ---- Side Panel ---- */
+  .side-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 240px;
+    max-width: 300px;
+    flex-shrink: 1;
+  }
+
+  .panel-card {
+    background: rgba(45, 20, 80, .8);
+    border: 1px solid rgba(255, 215, 0, .25);
+    border-radius: 12px;
+    padding: 14px;
+  }
+
+  .panel-card h3 {
+    font-family: 'Bungee', cursive;
+    font-size: .85rem;
+    color: var(--accent-yellow);
+    margin-bottom: 8px;
+  }
+
+  /* Current turn */
+  .turn-info {
+    text-align: center;
+  }
+
+  .turn-info .current-player {
+    font-size: 1.1rem;
+    font-weight: 900;
+    margin: 4px 0;
+  }
+
+  .turn-info .current-avatar {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 6px auto;
+    border: 2px solid var(--accent-yellow);
+  }
+
+  .turn-info .current-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Dice */
+  .dice-area {
+    text-align: center;
+  }
+
+  .dice {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px;
+    height: 64px;
+    background: linear-gradient(135deg, #fff, #e8e0f0);
+    border-radius: 14px;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--bg-dark);
+    box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    margin: 8px 0;
+    transition: transform .15s;
+    user-select: none;
+  }
+
+  .dice.rolling {
+    animation: diceShake .12s infinite alternate;
+  }
+
+  @keyframes diceShake {
+    0%   { transform: rotate(-8deg) scale(1.05); }
+    100% { transform: rotate(8deg) scale(.95); }
+  }
+
+  .roll-btn {
+    margin-top: 6px;
+    padding: 10px 28px;
+    font-family: 'Bungee', cursive;
+    font-size: .9rem;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--accent-blue), #0088cc);
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 191, 255, .35);
+    transition: transform .15s;
+  }
+
+  .roll-btn:hover { transform: translateY(-2px); }
+  .roll-btn:disabled { opacity: .4; cursor: default; transform: none; }
+
+  /* Scoreboard */
+  .scoreboard .player-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 5px 6px;
+    border-radius: 8px;
+    margin: 3px 0;
+    transition: background .2s;
+  }
+
+  .scoreboard .player-row.active {
+    background: rgba(255, 215, 0, .12);
+    box-shadow: inset 0 0 0 1px rgba(255, 215, 0, .3);
+  }
+
+  .scoreboard .player-row .sb-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .scoreboard .player-row .sb-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .scoreboard .player-row .sb-name {
+    flex: 1;
+    font-weight: 700;
+    font-size: .85rem;
+  }
+
+  .scoreboard .player-row .sb-pos {
+    font-weight: 900;
+    font-size: .85rem;
+    color: var(--accent-yellow);
+  }
+
+  /* Log */
+  .log-box {
+    max-height: 140px;
+    overflow-y: auto;
+    font-size: .75rem;
+    color: #c8b8e8;
+    line-height: 1.4;
+  }
+
+  .log-box::-webkit-scrollbar { width: 4px; }
+  .log-box::-webkit-scrollbar-thumb { background: rgba(255,255,255,.15); border-radius: 2px; }
+
+  .log-entry { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,.04); }
+  .log-entry strong { color: #fff; }
+
+  /* Winner overlay */
+  .winner-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, .7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(6px);
+  }
+
+  .winner-overlay.show { display: flex; }
+
+  .winner-card {
+    background: linear-gradient(135deg, var(--bg-mid), #3a1a6a);
+    border: 3px solid var(--accent-yellow);
+    border-radius: 20px;
+    padding: 40px 50px;
+    text-align: center;
+    box-shadow: 0 0 60px rgba(255, 215, 0, .3);
+    animation: popIn .4s cubic-bezier(.2, .8, .3, 1.2);
+  }
+
+  @keyframes popIn {
+    0% { transform: scale(.5); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .winner-card .trophy {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    overflow: hidden;
+    margin: 0 auto 14px;
+    border: 3px solid var(--accent-yellow);
+    box-shadow: 0 0 20px rgba(255, 215, 0, .4);
+  }
+  .winner-card .trophy img { width: 100%; height: 100%; object-fit: cover; }
+  .winner-card h2 {
+    font-family: 'Bungee', cursive;
+    font-size: 1.8rem;
+    background: linear-gradient(90deg, var(--accent-yellow), var(--accent-red));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .winner-card p { font-size: 1rem; color: #c8b8e8; margin-bottom: 18px; }
+
+  /* Confetti */
+  .confetti-container {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1001;
+    overflow: hidden;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    top: -20px;
+    animation: confettiFall linear forwards;
+  }
+
+  @keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
+  }
+
+  /* Responsive — large tablets landscape (1024+): board + side panel side-by-side */
+  @media (min-width: 1024px) {
+    :root { --board-size: min(80vh, 720px); }
+    .side-panel { min-width: 240px; max-width: 300px; }
+  }
+
+  /* Tablets portrait & small landscape (601-1023px) */
+  @media (max-width: 1023px) and (min-width: 601px) {
+    :root { --board-size: min(65vmin, 560px); }
+    .game-layout { flex-wrap: nowrap; }
+    .side-panel { min-width: 200px; max-width: 260px; }
+  }
+
+  /* Portrait tablets — stack if viewport is tall and narrow */
+  @media (max-width: 1023px) and (orientation: portrait) {
+    :root { --board-size: min(88vw, 600px); }
+    .game-layout { flex-direction: column; align-items: center; }
+    .side-panel {
+      flex-direction: row;
+      flex-wrap: wrap;
+      min-width: unset;
+      max-width: 100%;
+      width: 100%;
+      justify-content: center;
+    }
+    .panel-card { flex: 1 1 180px; min-width: 160px; max-width: 48%; }
+  }
+
+  /* Phones (≤600px) */
+  @media (max-width: 600px) {
+    :root { --board-size: min(95vw, 95vw); }
+    h1 { font-size: 1.2rem; margin: 8px 0 2px; }
+    .subtitle { font-size: .75rem; margin-bottom: 4px; }
+    .game-layout { flex-direction: column; align-items: center; gap: 10px; }
+    .side-panel {
+      flex-direction: row;
+      flex-wrap: wrap;
+      min-width: unset;
+      max-width: 100%;
+      width: 100%;
+      justify-content: center;
+      gap: 8px;
+    }
+    .panel-card { flex: 1 1 140px; min-width: 140px; max-width: 48%; padding: 10px; }
+    .panel-card h3 { font-size: .75rem; }
+    .dice { width: 50px; height: 50px; font-size: 1.6rem; }
+    .roll-btn { padding: 8px 20px; font-size: .8rem; }
+  }
+</style>
+</head>
+<body>
+
+<h1>⚔️ בראול סטארס: נחשים וסולמות ⚔️</h1>
+<p class="subtitle">הטילו את הקובייה, היזהרו מנחשים, טפסו על סולמות!</p>
+
+<!-- ========== SETUP SCREEN ========== -->
+<div id="setup">
+  <h2>בחרו את הלוחמים שלכם</h2>
+  <div id="playerSlots"></div>
+  <button class="btn" id="startBtn" onclick="startGame()">!יאללה</button>
+</div>
+
+<!-- ========== GAME SCREEN ========== -->
+<div id="game">
+  <div class="game-layout">
+    <div class="board-wrapper">
+      <div class="board" id="board"></div>
+      <svg class="overlay-svg" id="overlaySvg"></svg>
+      <div id="tokenLayer"></div>
+    </div>
+    <div class="side-panel">
+      <div class="panel-card turn-info">
+        <h3>תור נוכחי</h3>
+        <div class="current-avatar" id="curAvatar"></div>
+        <div class="current-player" id="curPlayer"></div>
+        <button class="power-btn" id="powerBtn" onclick="activatePower()">⚡ סופר</button>
+        <div class="power-desc" id="powerDesc"></div>
+      </div>
+      <div class="panel-card dice-area">
+        <h3>קובייה</h3>
+        <div class="dice" id="dice">?</div><br>
+        <button class="roll-btn" id="rollBtn" onclick="rollDice()">🎲 הטל!</button>
+        <div id="debugControls" style="display:none; align-items:center; justify-content:center; gap:6px; margin-top:8px;">
+          <label style="font-size:.75rem; color:#ffd700;">תוצאה:</label>
+          <input type="number" id="debugRoll" min="1" max="6" value="1"
+            style="width:42px; text-align:center; background:rgba(255,255,255,.1); border:1px solid #ffd700; border-radius:6px; color:#fff; font-weight:700; padding:4px;">
+          <button onclick="toggleDebug()" style="font-size:.6rem; background:none; border:1px solid #ff4060; color:#ff4060; border-radius:6px; padding:3px 6px; cursor:pointer;">✕</button>
+        </div>
+      </div>
+      <div class="panel-card scoreboard">
+        <h3>טבלת ניקוד</h3>
+        <div id="scoreboard"></div>
+      </div>
+      <div class="panel-card">
+        <h3>יומן קרב</h3>
+        <div class="log-box" id="log"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Mini-game overlay -->
+<div class="minigame-overlay" id="minigameOverlay">
+  <div class="minigame-card">
+    <h2 id="mgTitle">⭐ !אתגר</h2>
+    <p class="mg-subtitle" id="mgSubtitle">!השלימו את המשימה</p>
+    <div class="mg-timer" id="mgTimer"></div>
+    <div class="mg-area" id="mgArea"></div>
+    <div class="mg-score" id="mgScore"></div>
+    <div class="mg-result" id="mgResult"></div>
+  </div>
+</div>
+
+<!-- Winner overlay -->
+<div class="winner-overlay" id="winnerOverlay">
+  <div class="winner-card">
+    <div class="trophy">🏆</div>
+    <h2 id="winnerName"></h2>
+    <p id="winnerMsg">ניצח/ה בקרב!</p>
+    <button class="btn" onclick="resetGame()">שחקו שוב</button>
+  </div>
+</div>
+<div class="confetti-container" id="confetti"></div>
+
+<script>
+// ============ SOUND ENGINE (Web Audio API) ============
+const AudioCtx = window.AudioContext || window.webkitAudioContext;
+let audioCtx;
+
+function ensureAudio() {
+  if (!audioCtx) audioCtx = new AudioCtx();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+}
+
+function playTone(freq, duration, type = 'sine', vol = 0.3, ramp = true) {
+  ensureAudio();
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type;
+  osc.frequency.value = freq;
+  gain.gain.value = vol;
+  if (ramp) gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime + duration);
+}
+
+function playNoise(duration, vol = 0.15) {
+  ensureAudio();
+  const bufSize = audioCtx.sampleRate * duration;
+  const buf = audioCtx.createBuffer(1, bufSize, audioCtx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = audioCtx.createBufferSource();
+  const gain = audioCtx.createGain();
+  src.buffer = buf;
+  gain.gain.value = vol;
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+  src.connect(gain);
+  gain.connect(audioCtx.destination);
+  src.start();
+}
+
+const SFX = {
+  diceRoll() {
+    for (let i = 0; i < 6; i++) {
+      setTimeout(() => playNoise(0.05, 0.12), i * 80);
+    }
+  },
+
+  step() {
+    playTone(500, 0.08, 'sine', 0.12);
+  },
+
+  ladderClimb() {
+    const notes = [400, 500, 600, 750, 900];
+    notes.forEach((f, i) => setTimeout(() => playTone(f, 0.15, 'triangle', 0.2), i * 80));
+  },
+
+  snakeBite() {
+    playNoise(0.15, 0.2);
+    playTone(300, 0.3, 'sawtooth', 0.15);
+    setTimeout(() => playTone(150, 0.4, 'sawtooth', 0.12), 100);
+  },
+
+  starLand() {
+    playTone(800, 0.12, 'sine', 0.2);
+    setTimeout(() => playTone(1000, 0.15, 'sine', 0.2), 100);
+  },
+
+  miniGameWin() {
+    const notes = [523, 659, 784, 1047];
+    notes.forEach((f, i) => setTimeout(() => playTone(f, 0.2, 'triangle', 0.2), i * 120));
+  },
+
+  miniGameLose() {
+    playTone(300, 0.3, 'square', 0.12);
+    setTimeout(() => playTone(200, 0.4, 'square', 0.12), 200);
+  },
+
+  powerActivate() {
+    playTone(600, 0.1, 'sine', 0.2);
+    setTimeout(() => playTone(900, 0.1, 'sine', 0.2), 80);
+    setTimeout(() => playTone(1200, 0.2, 'triangle', 0.25), 160);
+  },
+
+  shieldBlock() {
+    playTone(800, 0.08, 'square', 0.15);
+    setTimeout(() => playNoise(0.1, 0.1), 50);
+    setTimeout(() => playTone(1000, 0.15, 'sine', 0.15), 100);
+  },
+
+  bonusTurn() {
+    playTone(700, 0.1, 'sine', 0.2);
+    setTimeout(() => playTone(880, 0.1, 'sine', 0.2), 100);
+    setTimeout(() => playTone(700, 0.15, 'sine', 0.15), 200);
+  },
+
+  victory() {
+    const melody = [523, 523, 587, 659, 587, 659, 784, 659, 784, 1047];
+    melody.forEach((f, i) => setTimeout(() => playTone(f, 0.25, 'triangle', 0.2), i * 140));
+  },
+
+  bounce() {
+    playTone(400, 0.15, 'sine', 0.15);
+    setTimeout(() => playTone(300, 0.2, 'sine', 0.12), 120);
+  },
+
+  click() {
+    playTone(600, 0.05, 'sine', 0.1);
+  },
+
+  swap() {
+    playTone(500, 0.1, 'triangle', 0.15);
+    setTimeout(() => playTone(700, 0.1, 'triangle', 0.15), 100);
+    setTimeout(() => playTone(500, 0.1, 'triangle', 0.15), 200);
+  },
+
+  moleHit() {
+    playTone(800, 0.08, 'square', 0.15);
+    playNoise(0.06, 0.1);
+  },
+
+  correctAnswer() {
+    playTone(880, 0.12, 'sine', 0.18);
+  },
+
+  wrongAnswer() {
+    playTone(200, 0.2, 'square', 0.1);
+  },
+};
+
+// ============ BRAWL STARS CHARACTERS ============
+const BRAWLERS = [
+  { name: "ג'וני",  img: 'johnny.png', color: '#e84393', power: 'shield',    powerName: '🛡️ מגן נחשים',    powerDesc: 'חוסם את הנחש הבא — פעם אחת!' },
+  { name: 'ממה',     img: 'meme.png',   color: '#6c5ce7', power: 'double',    powerName: '🎲 הטלה כפולה',    powerDesc: 'מטילים פעמיים וזזים את הסכום!' },
+  { name: 'אבא',    img: 'aba.png',    color: '#00b894', power: 'swap',      powerName: '🔀 החלפה',         powerDesc: 'מחליפים מיקום עם שחקן אחר!' },
+  { name: 'אמא',    img: 'ima.png',    color: '#ff9f43', power: 'autowin',   powerName: '⭐ ניצחון אוטומטי', powerDesc: 'מנצחים אוטומטית את האתגר הבא!' },
+];
+
+// ============ SNAKES & LADDERS (randomized each game) ============
+let LADDERS = {};
+let CHUTES = {};
+let STAR_SQUARES = new Set();
+
+function generateBoard() {
+  LADDERS = {};
+  CHUTES = {};
+  STAR_SQUARES = new Set();
+  const used = new Set([1, 100]);
+
+  function pickFree() {
+    let n;
+    do { n = Math.floor(Math.random() * 98) + 2; } while (used.has(n));
+    used.add(n);
+    return n;
+  }
+
+  // Size categories: [minGap, maxGap, count]
+  // 1-2 big, 3 medium, rest small
+  const ladderSizes = [
+    { min: 40, max: 60, count: 1 + Math.round(Math.random()) },  // 1-2 big
+    { min: 20, max: 35, count: 3 },                               // 3 medium
+  ];
+  ladderSizes.push({ min: 10, max: 19, count: 8 - ladderSizes[0].count - 3 }); // rest small
+
+  for (const size of ladderSizes) {
+    for (let i = 0; i < size.count; i++) {
+      let from, to;
+      for (let tries = 0; tries < 80; tries++) {
+        from = pickFree();
+        to = pickFree();
+        if (from > to) [from, to] = [to, from];
+        const gap = to - from;
+        if (gap >= size.min && gap <= size.max) break;
+        used.delete(from); used.delete(to);
+        from = null;
+      }
+      if (from != null) LADDERS[from] = to;
+    }
+  }
+
+  // Same distribution for snakes
+  const snakeSizes = [
+    { min: 40, max: 60, count: 1 + Math.round(Math.random()) },
+    { min: 20, max: 35, count: 3 },
+  ];
+  snakeSizes.push({ min: 10, max: 19, count: 8 - snakeSizes[0].count - 3 });
+
+  for (const size of snakeSizes) {
+    for (let i = 0; i < size.count; i++) {
+      let from, to;
+      for (let tries = 0; tries < 80; tries++) {
+        from = pickFree();
+        to = pickFree();
+        if (from < to) [from, to] = [to, from];
+        const gap = from - to;
+        if (gap >= size.min && gap <= size.max) break;
+        used.delete(from); used.delete(to);
+        from = null;
+      }
+      if (from != null) CHUTES[from] = to;
+    }
+  }
+
+  // Generate 10 star (mini-game) squares
+  for (let i = 0; i < 10; i++) {
+    STAR_SQUARES.add(pickFree());
+  }
+}
+
+const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
+
+// ============ GAME STATE ============
+let players = [];
+let currentPlayerIdx = 0;
+let gameActive = false;
+let debugMode = false;
+
+// Toggle debug via console: toggleDebug() or URL param ?debug=1
+function toggleDebug() {
+  debugMode = !debugMode;
+  document.getElementById('debugControls').style.display = debugMode ? 'flex' : 'none';
+  console.log(`Debug mode: ${debugMode ? 'ON' : 'OFF'}`);
+}
+
+if (new URLSearchParams(window.location.search).has('debug')) {
+  debugMode = true;
+}
+
+// ============ SETUP ============
+function initSetup() {
+  const container = document.getElementById('playerSlots');
+  container.innerHTML = '';
+  for (let i = 0; i < BRAWLERS.length; i++) {
+    const b = BRAWLERS[i];
+    const active = i < 2;
+    const div = document.createElement('div');
+    div.className = 'player-setup';
+    div.innerHTML = `
+      <div class="avatar" style="border-color:${b.color}"><img src="${b.img}" alt="${b.name}"></div>
+      <div style="flex:1; display:flex; flex-direction:column; gap:2px;">
+        <input type="text" placeholder="${b.name}" maxlength="12" id="pname${i}" ${!active ? 'disabled' : ''}>
+        <span class="power-label">${b.powerName} — ${b.powerDesc}</span>
+      </div>
+      <button class="toggle-btn ${active ? 'active' : ''}" id="ptoggle${i}"
+        onclick="togglePlayer(${i})">${active ? 'משחק' : 'בחוץ'}</button>
+    `;
+    container.appendChild(div);
+  }
+}
+
+function togglePlayer(i) {
+  const btn = document.getElementById(`ptoggle${i}`);
+  const isActive = btn.classList.contains('active');
+
+  // Don't allow deselecting if only 2 players are active
+  if (isActive) {
+    const activeCount = document.querySelectorAll('.toggle-btn.active').length;
+    if (activeCount <= 2) return;
+  }
+
+  const input = document.getElementById(`pname${i}`);
+  const active = btn.classList.toggle('active');
+  btn.textContent = active ? 'משחק' : 'בחוץ';
+  input.disabled = !active;
+}
+
+// ============ START GAME ============
+function startGame() {
+  players = [];
+  for (let i = 0; i < BRAWLERS.length; i++) {
+    const btn = document.getElementById(`ptoggle${i}`);
+    if (!btn.classList.contains('active')) continue;
+    const nameInput = document.getElementById(`pname${i}`);
+    const name = nameInput.value.trim() || BRAWLERS[i].name;
+    players.push({
+      name,
+      img: BRAWLERS[i].img,
+      color: BRAWLERS[i].color,
+      power: BRAWLERS[i].power,
+      powerName: BRAWLERS[i].powerName,
+      powerDesc: BRAWLERS[i].powerDesc,
+      powerUsed: false,
+      powerActive: false,
+      pos: 0,
+    });
+  }
+
+  if (players.length < 2) return;
+
+  currentPlayerIdx = 0;
+  gameActive = true;
+  generateBoard();
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game').style.display = 'block';
+
+  buildBoard();
+  drawOverlay();
+  createTokens();
+  updateUI();
+  addLog(`🎮 המשחק התחיל עם ${players.length} לוחמים!`);
+  if (debugMode) document.getElementById('debugControls').style.display = 'flex';
+}
+
+// ============ BUILD BOARD ============
+function buildBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  for (let row = 0; row < 10; row++) {
+    for (let col = 0; col < 10; col++) {
+      // Boustrophedon numbering (snaking)
+      const displayRow = 9 - row;
+      const actualCol = displayRow % 2 === 1 ? 9 - col : col;
+      const num = displayRow * 10 + actualCol + 1;
+
+      const cell = document.createElement('div');
+      cell.className = `cell ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+      cell.dataset.num = num;
+
+      if (num === 1) cell.classList.add('start');
+      if (num === 100) cell.classList.add('finish');
+
+      cell.innerHTML = `<span class="num">${num}</span>`;
+
+      if (LADDERS[num]) {
+        cell.style.background = 'rgba(200, 162, 76, .15)';
+      }
+      if (CHUTES[num]) {
+        cell.style.background = 'rgba(68, 187, 68, .12)';
+      }
+      if (STAR_SQUARES.has(num)) {
+        cell.classList.add('star-cell');
+        cell.innerHTML += `<span class="star-icon">⭐</span>`;
+      }
+
+      board.appendChild(cell);
+    }
+  }
+}
+
+// ============ COORDINATE HELPERS ============
+function numToCoord(num) {
+  // Returns { x, y } as fractions (0-1) within the board
+  if (num <= 0) return { x: -0.05, y: 1.05 }; // off board
+  const n = num - 1;
+  const row = Math.floor(n / 10); // 0 = bottom
+  const colInRow = n % 10;
+  const col = row % 2 === 1 ? 9 - colInRow : colInRow;
+  return {
+    x: (col + 0.5) / 10,
+    y: 1 - (row + 0.5) / 10,
+  };
+}
+
+// ============ DRAW OVERLAY LINES ============
+function drawOverlay() {
+  const svg = document.getElementById('overlaySvg');
+  svg.innerHTML = '';
+  const w = svg.clientWidth || 600;
+  const h = svg.clientHeight || 600;
+
+  // Draw ladders
+  for (const [from, to] of Object.entries(LADDERS)) {
+    const a = numToCoord(+from);
+    const b = numToCoord(+to);
+    drawLadder(svg, a.x * w, a.y * h, b.x * w, b.y * h);
+  }
+
+  // Draw snakes
+  for (const [from, to] of Object.entries(CHUTES)) {
+    const a = numToCoord(+from);
+    const b = numToCoord(+to);
+    drawSnake(svg, a.x * w, a.y * h, b.x * w, b.y * h);
+  }
+}
+
+function drawLadder(svg, x1, y1, x2, y2) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  // Perpendicular unit vector for rail spacing
+  const px = -dy / len, py = dx / len;
+  const railGap = 10;
+
+  // Two rails
+  for (const side of [-1, 1]) {
+    const ox = px * railGap * side / 2;
+    const oy = py * railGap * side / 2;
+    const rail = document.createElementNS(ns, 'line');
+    rail.setAttribute('x1', x1 + ox); rail.setAttribute('y1', y1 + oy);
+    rail.setAttribute('x2', x2 + ox); rail.setAttribute('y2', y2 + oy);
+    rail.setAttribute('stroke', '#c8a24c');
+    rail.setAttribute('stroke-width', '3');
+    rail.setAttribute('stroke-linecap', 'round');
+    rail.setAttribute('opacity', '0.85');
+    svg.appendChild(rail);
+  }
+
+  // Rungs
+  const rungCount = Math.max(3, Math.round(len / 18));
+  for (let i = 1; i < rungCount; i++) {
+    const t = i / rungCount;
+    const cx = x1 + dx * t, cy = y1 + dy * t;
+    const rung = document.createElementNS(ns, 'line');
+    rung.setAttribute('x1', cx + px * railGap / 2);
+    rung.setAttribute('y1', cy + py * railGap / 2);
+    rung.setAttribute('x2', cx - px * railGap / 2);
+    rung.setAttribute('y2', cy - py * railGap / 2);
+    rung.setAttribute('stroke', '#e8c960');
+    rung.setAttribute('stroke-width', '2.5');
+    rung.setAttribute('stroke-linecap', 'round');
+    rung.setAttribute('opacity', '0.8');
+    svg.appendChild(rung);
+  }
+}
+
+function drawSnake(svg, x1, y1, x2, y2) {
+  const ns = 'http://www.w3.org/2000/svg';
+  const dx = x2 - x1, dy = y2 - y1;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  // Perpendicular for wave offset
+  const px = -dy / len, py = dx / len;
+  const amplitude = Math.min(18, len * 0.12);
+  const waves = Math.max(3, Math.round(len / 40));
+
+  // Build a wavy cubic bezier path
+  const pts = [];
+  const segments = waves * 2;
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const bx = x1 + dx * t;
+    const by = y1 + dy * t;
+    const side = (i % 2 === 0) ? 0 : ((Math.floor(i / 2) % 2 === 0) ? 1 : -1);
+    pts.push({ x: bx + px * amplitude * side, y: by + py * amplitude * side });
+  }
+
+  // Smooth path through points using cubic bezier
+  let d = `M ${pts[0].x} ${pts[0].y}`;
+  for (let i = 1; i < pts.length - 1; i += 2) {
+    const cp1 = pts[i];
+    const cp2 = pts[i];
+    const end = pts[i + 1] || pts[i];
+    d += ` Q ${cp1.x} ${cp1.y} ${end.x} ${end.y}`;
+  }
+
+  // Snake body (thick, semi-transparent)
+  const body = document.createElementNS(ns, 'path');
+  body.setAttribute('d', d);
+  body.setAttribute('stroke', '#44bb44');
+  body.setAttribute('stroke-width', '7');
+  body.setAttribute('fill', 'none');
+  body.setAttribute('stroke-linecap', 'round');
+  body.setAttribute('stroke-linejoin', 'round');
+  body.setAttribute('opacity', '0.55');
+  svg.appendChild(body);
+
+  // Snake pattern overlay (darker spine)
+  const spine = document.createElementNS(ns, 'path');
+  spine.setAttribute('d', d);
+  spine.setAttribute('stroke', '#2d8a2d');
+  spine.setAttribute('stroke-width', '3');
+  spine.setAttribute('fill', 'none');
+  spine.setAttribute('stroke-linecap', 'round');
+  spine.setAttribute('stroke-dasharray', '6,5');
+  spine.setAttribute('opacity', '0.7');
+  svg.appendChild(spine);
+
+  // Snake head (circle at the start — the "from" square which is higher)
+  const head = document.createElementNS(ns, 'circle');
+  head.setAttribute('cx', x1);
+  head.setAttribute('cy', y1);
+  head.setAttribute('r', '6');
+  head.setAttribute('fill', '#44bb44');
+  head.setAttribute('stroke', '#226622');
+  head.setAttribute('stroke-width', '1.5');
+  head.setAttribute('opacity', '0.85');
+  svg.appendChild(head);
+
+  // Eyes
+  for (const side of [-1, 1]) {
+    const eye = document.createElementNS(ns, 'circle');
+    eye.setAttribute('cx', x1 + px * 3 * side);
+    eye.setAttribute('cy', y1 + py * 3 * side - 1);
+    eye.setAttribute('r', '1.8');
+    eye.setAttribute('fill', '#ff2020');
+    eye.setAttribute('opacity', '0.9');
+    svg.appendChild(eye);
+  }
+
+  // Tongue (forked, pointing toward tail direction)
+  const tongueLen = 8;
+  const tdx = dx / len, tdy = dy / len;
+  const tongueBase = { x: x1 - tdx * 5, y: y1 - tdy * 5 };
+  for (const fork of [-1, 1]) {
+    const tongue = document.createElementNS(ns, 'line');
+    tongue.setAttribute('x1', x1);
+    tongue.setAttribute('y1', y1);
+    tongue.setAttribute('x2', tongueBase.x + px * 3 * fork);
+    tongue.setAttribute('y2', tongueBase.y + py * 3 * fork);
+    tongue.setAttribute('stroke', '#ff3030');
+    tongue.setAttribute('stroke-width', '1.5');
+    tongue.setAttribute('stroke-linecap', 'round');
+    tongue.setAttribute('opacity', '0.8');
+    svg.appendChild(tongue);
+  }
+
+  // Tail taper (small circle at end)
+  const tail = document.createElementNS(ns, 'circle');
+  tail.setAttribute('cx', pts[pts.length - 1].x);
+  tail.setAttribute('cy', pts[pts.length - 1].y);
+  tail.setAttribute('r', '2.5');
+  tail.setAttribute('fill', '#44bb44');
+  tail.setAttribute('opacity', '0.6');
+  svg.appendChild(tail);
+}
+
+// ============ TOKENS ============
+function createTokens() {
+  const layer = document.getElementById('tokenLayer');
+  layer.innerHTML = '';
+  players.forEach((p, i) => {
+    const tok = document.createElement('div');
+    tok.className = 'token';
+    tok.id = `token${i}`;
+    tok.style.background = p.color;
+    tok.innerHTML = `<img src="${p.img}" alt="${p.name}">`;
+    layer.appendChild(tok);
+  });
+  positionAllTokens();
+}
+
+function positionAllTokens() {
+  const wrapper = document.querySelector('.board-wrapper');
+  const w = wrapper.clientWidth;
+  const h = wrapper.clientHeight;
+
+  players.forEach((p, i) => {
+    const coord = numToCoord(p.pos);
+    const tok = document.getElementById(`token${i}`);
+    const offsetX = (i % 2 === 0 ? -8 : 8);
+    const offsetY = (i < 2 ? -8 : 8);
+    tok.style.left = `${coord.x * w + offsetX - 14}px`;
+    tok.style.top  = `${coord.y * h + offsetY - 14}px`;
+  });
+}
+
+// ============ POWERS ============
+async function activatePower() {
+  const p = players[currentPlayerIdx];
+  if (p.powerUsed || p.powerActive) return;
+
+  if (p.power === 'double') {
+    p.powerActive = true;
+    addLog(`🎲 <strong>${p.name}</strong> הפעיל/ה <strong>הטלה כפולה</strong>!`);
+    SFX.powerActivate();
+    updateUI();
+  } else if (p.power === 'swap') {
+    p.powerUsed = true;
+    // Pick a target — show a selection UI
+    const others = players.filter((_, i) => i !== currentPlayerIdx);
+    if (others.length === 0) return;
+    const target = await pickSwapTarget(p);
+    if (target !== null) {
+      const other = players[target];
+      const tmp = p.pos;
+      p.pos = other.pos;
+      other.pos = tmp;
+      positionAllTokens();
+      updateScoreboard();
+      addLog(`🔀 <strong>${p.name}</strong> החליף/ה מקום עם <strong>${other.name}</strong>!`);
+      SFX.swap();
+    }
+    updateUI();
+  }
+}
+
+function pickSwapTarget(currentP) {
+  return new Promise(resolve => {
+    const overlay = document.getElementById('minigameOverlay');
+    document.getElementById('mgTitle').textContent = '🔀 להחליף עם מי?';
+    document.getElementById('mgSubtitle').textContent = 'בחרו שחקן להחלפת מיקום!';
+    document.getElementById('mgTimer').textContent = '';
+    document.getElementById('mgScore').textContent = '';
+    document.getElementById('mgResult').textContent = '';
+    document.getElementById('mgResult').className = 'mg-result';
+    const area = document.getElementById('mgArea');
+    area.innerHTML = '';
+
+    players.forEach((p, i) => {
+      if (i === currentPlayerIdx) return;
+      const btn = document.createElement('button');
+      btn.style.cssText = `display:flex; align-items:center; gap:8px; padding:10px 18px; border-radius:12px;
+        border:2px solid ${p.color}; background:rgba(255,255,255,.06); color:#fff; cursor:pointer;
+        font-family:'Nunito',sans-serif; font-weight:700; font-size:.9rem; transition:transform .15s;`;
+      btn.innerHTML = `<img src="${p.img}" style="width:32px;height:32px;border-radius:50%;"> ${p.name} (משבצת ${p.pos})`;
+      btn.onmouseenter = () => btn.style.transform = 'scale(1.05)';
+      btn.onmouseleave = () => btn.style.transform = 'scale(1)';
+      btn.onclick = () => { overlay.classList.remove('show'); resolve(i); };
+      area.appendChild(btn);
+    });
+
+    overlay.classList.add('show');
+  });
+}
+
+// ============ DICE ============
+async function rollDice() {
+  if (!gameActive) return;
+  const btn = document.getElementById('rollBtn');
+  const diceEl = document.getElementById('dice');
+  const powerBtn = document.getElementById('powerBtn');
+  btn.disabled = true;
+  powerBtn.disabled = true;
+
+  const p = players[currentPlayerIdx];
+  const isDouble = p.powerActive && p.power === 'double';
+
+  // Rolling animation
+  diceEl.classList.add('rolling');
+  SFX.diceRoll();
+  let roll;
+  if (debugMode) {
+    roll = Math.max(1, Math.min(6, parseInt(document.getElementById('debugRoll').value) || 1));
+  } else {
+    roll = Math.floor(Math.random() * 6) + 1;
+  }
+
+  let roll2 = 0;
+  if (isDouble) {
+    roll2 = debugMode
+      ? Math.max(1, Math.min(6, parseInt(document.getElementById('debugRoll').value) || 1))
+      : Math.floor(Math.random() * 6) + 1;
+  }
+
+  await sleep(600);
+  diceEl.classList.remove('rolling');
+
+  if (isDouble) {
+    diceEl.textContent = `${DICE_FACES[roll - 1]}+${DICE_FACES[roll2 - 1]}`;
+    const total = roll + roll2;
+    addLog(`${imgTag(p)} <strong>${p.name}</strong> הטיל/ה כפול <strong>${roll} + ${roll2} = ${total}</strong>! 🎲🎲`);
+    p.powerActive = false;
+    p.powerUsed = true;
+    await sleep(300);
+    await movePlayer(currentPlayerIdx, total);
+  } else {
+    diceEl.textContent = DICE_FACES[roll - 1];
+    addLog(`${imgTag(p)} <strong>${p.name}</strong> הטיל/ה <strong>${roll}</strong>`);
+    await sleep(300);
+    await movePlayer(currentPlayerIdx, roll);
+  }
+
+  if (!gameActive) return;
+
+  // If rolled 6, player goes again
+  if (roll === 6) {
+    addLog(`🔥 <strong>${p.name}</strong> הטיל/ה 6 — תור בונוס!`);
+    SFX.bonusTurn();
+    btn.disabled = false;
+    return;
+  }
+
+  currentPlayerIdx = (currentPlayerIdx + 1) % players.length;
+  updateUI();
+  btn.disabled = false;
+}
+
+// ============ MOVE PLAYER ============
+async function movePlayer(idx, steps) {
+  const p = players[idx];
+  let newPos = p.pos + steps;
+
+  // Must land exactly on 100
+  if (newPos > 100) {
+    addLog(`↩️ <strong>${p.name}</strong> חוזר/ת אחורה! צריך תוצאה מדויקת.`);
+    SFX.bounce();
+    newPos = 100 - (newPos - 100);
+  }
+
+  // Animate step by step
+  const start = p.pos;
+  for (let s = start + 1; s <= Math.max(newPos, p.pos + steps > 100 ? 100 : newPos); s++) {
+    if (s > 100) break;
+    p.pos = s;
+    positionAllTokens();
+    updateScoreboard();
+    SFX.step();
+    await sleep(150);
+  }
+
+  // Handle bounce back
+  if (p.pos !== newPos) {
+    for (let s = p.pos - 1; s >= newPos; s--) {
+      p.pos = s;
+      positionAllTokens();
+      updateScoreboard();
+      SFX.step();
+      await sleep(150);
+    }
+  }
+
+  p.pos = newPos;
+  positionAllTokens();
+
+  // Check win
+  if (p.pos === 100) {
+    gameActive = false;
+    addLog(`🏆 <strong>${p.name}</strong> ניצח/ה!`);
+    await sleep(400);
+    showWinner(p);
+    return;
+  }
+
+  // Check ladder
+  if (LADDERS[p.pos]) {
+    const dest = LADDERS[p.pos];
+    addLog(`🪜 <strong>${p.name}</strong> מטפס/ת על סולם מ-${p.pos} ל-${dest}!`);
+    SFX.ladderClimb();
+    await sleep(400);
+    p.pos = dest;
+    positionAllTokens();
+    updateScoreboard();
+  }
+
+  // Check chute (snake) — Johnny's shield can block it
+  if (CHUTES[p.pos]) {
+    const dest = CHUTES[p.pos];
+    if (p.power === 'shield' && !p.powerUsed) {
+      p.powerUsed = true;
+      addLog(`🛡️ <strong>${p.name}</strong> השתמש/ה ב<strong>מגן נחשים</strong> וחסם/ה את הנחש ב-${p.pos}!`);
+      SFX.shieldBlock();
+      await sleep(400);
+    } else {
+      addLog(`🐍 <strong>${p.name}</strong> ננשך/ה על ידי נחש! מחליק/ה מ-${p.pos} ל-${dest}!`);
+      SFX.snakeBite();
+      await sleep(400);
+      p.pos = dest;
+      positionAllTokens();
+      updateScoreboard();
+    }
+  }
+
+  // Check star square (mini-game) — Ima's auto-win triggers here
+  if (STAR_SQUARES.has(p.pos) && !LADDERS[p.pos] && !CHUTES[p.pos]) {
+    addLog(`⭐ <strong>${p.name}</strong> נחת/ה על משבצת אתגר!`);
+    SFX.starLand();
+    await sleep(300);
+    let won;
+    if (p.power === 'autowin' && !p.powerUsed) {
+      p.powerUsed = true;
+      addLog(`⭐ <strong>${p.name}</strong> השתמש/ה ב<strong>ניצחון אוטומטי</strong>! דילוג על אתגר!`);
+      won = true;
+      await sleep(600);
+    } else {
+      won = await runMiniGame(p);
+    }
+    if (won) {
+      const bonus = Math.min(5, 100 - p.pos);
+      if (bonus > 0) {
+        addLog(`🎉 <strong>${p.name}</strong> ניצח/ה באתגר! +${bonus} משבצות בונוס!`);
+        p.pos = Math.min(100, p.pos + bonus);
+        positionAllTokens();
+        updateScoreboard();
+        if (p.pos === 100) {
+          gameActive = false;
+          addLog(`🏆 <strong>${p.name}</strong> ניצח/ה!`);
+          await sleep(400);
+          showWinner(p);
+          return;
+        }
+      }
+    } else {
+      const penalty = Math.min(3, p.pos - 1);
+      if (penalty > 0) {
+        addLog(`😢 <strong>${p.name}</strong> הפסיד/ה! ${penalty} משבצות אחורה.`);
+        p.pos = Math.max(1, p.pos - penalty);
+        positionAllTokens();
+        updateScoreboard();
+      }
+    }
+  }
+}
+
+// ============ MINI-GAMES ============
+const MINI_GAMES = [miniGameWhack, miniGameMath, miniGameCatch, miniGameColors];
+
+function runMiniGame(player) {
+  const game = MINI_GAMES[Math.floor(Math.random() * MINI_GAMES.length)];
+  return game(player);
+}
+
+function showMiniGameUI(title, subtitle) {
+  const overlay = document.getElementById('minigameOverlay');
+  document.getElementById('mgTitle').textContent = title;
+  document.getElementById('mgSubtitle').textContent = subtitle;
+  document.getElementById('mgTimer').textContent = '';
+  document.getElementById('mgArea').innerHTML = '';
+  document.getElementById('mgScore').textContent = '';
+  document.getElementById('mgResult').textContent = '';
+  document.getElementById('mgResult').className = 'mg-result';
+  overlay.classList.add('show');
+}
+
+function hideMiniGameUI() {
+  document.getElementById('minigameOverlay').classList.remove('show');
+}
+
+function mgCountdown(seconds) {
+  return new Promise(resolve => {
+    const el = document.getElementById('mgTimer');
+    let t = seconds;
+    el.textContent = t;
+    const iv = setInterval(() => {
+      t--;
+      el.textContent = t > 0 ? t : '⏰';
+      if (t <= 0) { clearInterval(iv); resolve(); }
+    }, 1000);
+  });
+}
+
+// ---- 1. WHACK-A-MOLE ----
+function miniGameWhack(player) {
+  return new Promise(resolve => {
+    showMiniGameUI('🔨 הכה את השומה!', 'לחצו על השומות! 5 פגיעות לניצחון.');
+    const area = document.getElementById('mgArea');
+    const scoreEl = document.getElementById('mgScore');
+    let score = 0;
+    let ended = false;
+    const TARGET = 5;
+    const TIME = 6;
+
+    area.innerHTML = `<div class="mole-grid">${
+      Array(9).fill(0).map((_, i) => `<div class="mole-hole" data-i="${i}"></div>`).join('')
+    }</div>`;
+
+    const holes = area.querySelectorAll('.mole-hole');
+    scoreEl.textContent = `פגיעות: ${score} / ${TARGET}`;
+
+    let activeHole = null;
+    let moleInterval;
+
+    function popMole() {
+      if (ended) return;
+      holes.forEach(h => { h.textContent = ''; h.classList.remove('hit', 'miss'); });
+      const idx = Math.floor(Math.random() * 9);
+      holes[idx].textContent = '🐹';
+      activeHole = idx;
+    }
+
+    holes.forEach(h => {
+      h.addEventListener('click', () => {
+        if (ended) return;
+        const i = +h.dataset.i;
+        if (i === activeHole) {
+          score++;
+          h.classList.add('hit');
+          h.textContent = '💥';
+          SFX.moleHit();
+          scoreEl.textContent = `פגיעות: ${score} / ${TARGET}`;
+          activeHole = null;
+          if (score >= TARGET) {
+            ended = true;
+            clearInterval(moleInterval);
+            showMgResult(true, resolve);
+          }
+        } else {
+          h.classList.add('miss');
+          setTimeout(() => h.classList.remove('miss'), 200);
+        }
+      });
+    });
+
+    popMole();
+    moleInterval = setInterval(popMole, 900);
+
+    mgCountdown(TIME).then(() => {
+      if (!ended) {
+        ended = true;
+        clearInterval(moleInterval);
+        showMgResult(score >= TARGET, resolve);
+      }
+    });
+  });
+}
+
+// ---- 2. QUICK MATH ----
+function miniGameMath(player) {
+  return new Promise(resolve => {
+    showMiniGameUI('🧮 חשבון מהיר!', 'פתרו 3 תרגילים כדי לנצח!');
+    const area = document.getElementById('mgArea');
+    const scoreEl = document.getElementById('mgScore');
+    let solved = 0;
+    let ended = false;
+    const TARGET = 3;
+    const TIME = 10;
+
+    function showProblem() {
+      if (ended) return;
+      const ops = ['+', '-', '×'];
+      const op = ops[Math.floor(Math.random() * ops.length)];
+      let a, b, answer;
+      if (op === '+') {
+        a = Math.floor(Math.random() * 20) + 1;
+        b = Math.floor(Math.random() * 20) + 1;
+        answer = a + b;
+      } else if (op === '-') {
+        a = Math.floor(Math.random() * 20) + 10;
+        b = Math.floor(Math.random() * a);
+        answer = a - b;
+      } else {
+        a = Math.floor(Math.random() * 10) + 1;
+        b = Math.floor(Math.random() * 10) + 1;
+        answer = a * b;
+      }
+
+      // Generate 4 choices including the correct one
+      const choices = new Set([answer]);
+      while (choices.size < 4) {
+        choices.add(answer + Math.floor(Math.random() * 11) - 5 || answer + 1);
+      }
+      const shuffled = [...choices].sort(() => Math.random() - .5);
+
+      area.innerHTML = `
+        <div class="math-problem">${a} ${op} ${b} = ?</div>
+        <div class="math-answers">
+          ${shuffled.map(c => `<button data-val="${c}">${c}</button>`).join('')}
+        </div>
+      `;
+
+      area.querySelectorAll('.math-answers button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (ended) return;
+          const val = +btn.dataset.val;
+          if (val === answer) {
+            btn.classList.add('correct');
+            SFX.correctAnswer();
+            solved++;
+            scoreEl.textContent = `נפתרו: ${solved} / ${TARGET}`;
+            if (solved >= TARGET) {
+              ended = true;
+              showMgResult(true, resolve);
+            } else {
+              setTimeout(showProblem, 400);
+            }
+          } else {
+            btn.classList.add('wrong');
+            SFX.wrongAnswer();
+            btn.disabled = true;
+          }
+        });
+      });
+    }
+
+    scoreEl.textContent = `נפתרו: ${solved} / ${TARGET}`;
+    showProblem();
+
+    mgCountdown(TIME).then(() => {
+      if (!ended) {
+        ended = true;
+        showMgResult(solved >= TARGET, resolve);
+      }
+    });
+  });
+}
+
+// ---- 3. CATCH THE STAR ----
+function miniGameCatch(player) {
+  return new Promise(resolve => {
+    showMiniGameUI('⭐ תפסו כוכבים!', 'לחצו על 6 כוכבים לפני שהזמן נגמר!');
+    const area = document.getElementById('mgArea');
+    const scoreEl = document.getElementById('mgScore');
+    let caught = 0;
+    let ended = false;
+    const TARGET = 6;
+    const TIME = 7;
+
+    area.innerHTML = `<div class="catch-area" id="catchArea"></div>`;
+    const catchArea = document.getElementById('catchArea');
+    scoreEl.textContent = `נתפסו: ${caught} / ${TARGET}`;
+
+    function spawnStar() {
+      if (ended) return;
+      // Remove old stars
+      catchArea.querySelectorAll('.catch-star').forEach(s => s.remove());
+      const star = document.createElement('span');
+      star.className = 'catch-star';
+      star.textContent = '⭐';
+      star.style.left = Math.floor(Math.random() * 210) + 10 + 'px';
+      star.style.top = Math.floor(Math.random() * 130) + 10 + 'px';
+      catchArea.appendChild(star);
+
+      star.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (ended) return;
+        caught++;
+        SFX.moleHit();
+        scoreEl.textContent = `נתפסו: ${caught} / ${TARGET}`;
+        star.remove();
+        if (caught >= TARGET) {
+          ended = true;
+          showMgResult(true, resolve);
+        } else {
+          spawnStar();
+        }
+      });
+
+      // Star disappears and respawns after a short time
+      setTimeout(() => {
+        if (!ended && star.parentNode) {
+          star.remove();
+          spawnStar();
+        }
+      }, 1200);
+    }
+
+    spawnStar();
+
+    mgCountdown(TIME).then(() => {
+      if (!ended) {
+        ended = true;
+        showMgResult(caught >= TARGET, resolve);
+      }
+    });
+  });
+}
+
+// ---- 4. COLOR SEQUENCE (memory) ----
+function miniGameColors(player) {
+  return new Promise(resolve => {
+    showMiniGameUI('🎨 זיכרון צבעים!', 'צפו ברצף וחזרו עליו!');
+    const area = document.getElementById('mgArea');
+    const scoreEl = document.getElementById('mgScore');
+    let ended = false;
+
+    const COLORS = [
+      { name: 'Red', hex: '#ff4060' },
+      { name: 'Blue', hex: '#00bfff' },
+      { name: 'Green', hex: '#39ff14' },
+      { name: 'Yellow', hex: '#ffd700' },
+    ];
+
+    // Generate a sequence of 4
+    const seqLen = 4;
+    const sequence = [];
+    for (let i = 0; i < seqLen; i++) {
+      sequence.push(Math.floor(Math.random() * COLORS.length));
+    }
+
+    area.innerHTML = `
+      <div class="color-display">
+        ${COLORS.map((c, i) => `<div class="color-bubble" data-i="${i}" style="background:${c.hex}; opacity:.4;"></div>`).join('')}
+      </div>
+      <p style="color:#b8a0d8; font-size:.85rem;" id="colorInstr">שימו לב...</p>
+      <div class="color-buttons" id="colorBtns" style="display:none;">
+        ${COLORS.map((c, i) => `<button data-i="${i}" style="background:${c.hex}"></button>`).join('')}
+      </div>
+    `;
+
+    const bubbles = area.querySelectorAll('.color-bubble');
+    let playerSeq = [];
+
+    // Flash the sequence
+    (async () => {
+      await sleep(500);
+      for (let i = 0; i < sequence.length; i++) {
+        const idx = sequence[i];
+        bubbles[idx].classList.add('flash');
+        bubbles[idx].style.opacity = '1';
+        await sleep(600);
+        bubbles[idx].classList.remove('flash');
+        bubbles[idx].style.opacity = '.4';
+        await sleep(250);
+      }
+
+      if (ended) return;
+
+      // Now let player input
+      document.getElementById('colorInstr').textContent = 'תורכם! חזרו על הרצף.';
+      const btnsDiv = document.getElementById('colorBtns');
+      btnsDiv.style.display = 'flex';
+      scoreEl.textContent = `${playerSeq.length} / ${seqLen}`;
+
+      btnsDiv.querySelectorAll('button').forEach(btn => {
+        btn.addEventListener('click', () => {
+          if (ended) return;
+          const i = +btn.dataset.i;
+          playerSeq.push(i);
+          // Flash the bubble
+          bubbles[i].classList.add('flash');
+          bubbles[i].style.opacity = '1';
+          setTimeout(() => { bubbles[i].classList.remove('flash'); bubbles[i].style.opacity = '.4'; }, 300);
+
+          scoreEl.textContent = `${playerSeq.length} / ${seqLen}`;
+
+          // Check if wrong
+          if (playerSeq[playerSeq.length - 1] !== sequence[playerSeq.length - 1]) {
+            ended = true;
+            showMgResult(false, resolve);
+            return;
+          }
+
+          // Check if complete
+          if (playerSeq.length === seqLen) {
+            ended = true;
+            showMgResult(true, resolve);
+          }
+        });
+      });
+
+      // Time limit for input phase
+      await sleep(8000);
+      if (!ended) {
+        ended = true;
+        showMgResult(false, resolve);
+      }
+    })();
+  });
+}
+
+function showMgResult(won, resolve) {
+  const el = document.getElementById('mgResult');
+  el.textContent = won ? '🎉 ניצחון!' : '😢 לא הפעם!';
+  el.className = `mg-result ${won ? 'win' : 'lose'}`;
+  if (won) SFX.miniGameWin(); else SFX.miniGameLose();
+  setTimeout(() => {
+    hideMiniGameUI();
+    resolve(won);
+  }, 1200);
+}
+
+// ============ UI UPDATES ============
+function updateUI() {
+  const p = players[currentPlayerIdx];
+  document.getElementById('curAvatar').innerHTML = `<img src="${p.img}" alt="${p.name}">`;
+  document.getElementById('curPlayer').textContent = p.name;
+  document.getElementById('curPlayer').style.color = p.color;
+
+  // Power button
+  const powerBtn = document.getElementById('powerBtn');
+  const powerDesc = document.getElementById('powerDesc');
+  if (p.powerUsed) {
+    powerBtn.disabled = true;
+    powerBtn.classList.remove('activated');
+    powerBtn.textContent = '⚡ נוצל';
+    powerDesc.textContent = `${p.powerName} — כבר בשימוש`;
+  } else if (p.powerActive) {
+    powerBtn.disabled = true;
+    powerBtn.classList.add('activated');
+    powerBtn.textContent = '⚡ מוכן!';
+    powerDesc.textContent = `${p.powerName} פעיל!`;
+  } else {
+    // Shield and auto-win are passive (auto-trigger), don't need manual activation
+    const isManual = (p.power === 'double' || p.power === 'swap');
+    powerBtn.disabled = !isManual;
+    powerBtn.classList.remove('activated');
+    powerBtn.textContent = `⚡ ${p.powerName}`;
+    powerDesc.textContent = isManual ? 'השתמשו לפני ההטלה!' : `מופעל אוטומטית`;
+  }
+
+  updateScoreboard();
+}
+
+function updateScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = '';
+  players.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = `player-row ${i === currentPlayerIdx ? 'active' : ''}`;
+    row.innerHTML = `
+      <span class="sb-avatar"><img src="${p.img}" alt="${p.name}"></span>
+      <span class="sb-name" style="color:${p.color}">${p.name}</span>
+      <span class="sb-pos">${p.pos}</span>
+    `;
+    sb.appendChild(row);
+  });
+}
+
+function addLog(msg) {
+  const log = document.getElementById('log');
+  log.innerHTML = `<div class="log-entry">${msg}</div>` + log.innerHTML;
+}
+
+// ============ WINNER ============
+function showWinner(p) {
+  SFX.victory();
+  document.getElementById('winnerName').textContent = `${p.name} ניצח/ה!`;
+  document.querySelector('.winner-card .trophy').innerHTML = `<img src="${p.img}" alt="${p.name}">`;
+  document.getElementById('winnerOverlay').classList.add('show');
+  spawnConfetti();
+}
+
+function spawnConfetti() {
+  const container = document.getElementById('confetti');
+  container.innerHTML = '';
+  const colors = ['#ffd700','#ff4060','#39ff14','#00bfff','#e84393','#6c5ce7','#ff6b6b','#48dbfb'];
+  for (let i = 0; i < 80; i++) {
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = Math.random() * 100 + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDuration = (2 + Math.random() * 2) + 's';
+    piece.style.animationDelay = Math.random() * 1.5 + 's';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    piece.style.width = (6 + Math.random() * 8) + 'px';
+    piece.style.height = (6 + Math.random() * 8) + 'px';
+    container.appendChild(piece);
+  }
+}
+
+function resetGame() {
+  document.getElementById('winnerOverlay').classList.remove('show');
+  document.getElementById('confetti').innerHTML = '';
+  document.getElementById('game').style.display = 'none';
+  document.getElementById('setup').style.display = 'block';
+  document.getElementById('dice').textContent = '?';
+  document.getElementById('log').innerHTML = '';
+  gameActive = false;
+  initSetup();
+}
+
+// ============ UTILS ============
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function imgTag(p, size = 18) {
+  return `<img src="${p.img}" alt="${p.name}" style="width:${size}px;height:${size}px;border-radius:50%;vertical-align:middle;">`;
+}
+
+// Handle resize
+window.addEventListener('resize', () => {
+  if (gameActive || document.getElementById('game').style.display === 'block') {
+    positionAllTokens();
+    drawOverlay();
+  }
+});
+
+// Init
+initSetup();
+</script>
+</body>
+</html>
