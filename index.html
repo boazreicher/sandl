@@ -517,13 +517,31 @@
     transition: left .45s cubic-bezier(.4,0,.2,1), top .45s cubic-bezier(.4,0,.2,1);
     filter: drop-shadow(0 2px 4px rgba(0,0,0,.6));
     border: 2px solid rgba(255,255,255,.6);
-    overflow: hidden;
+    overflow: visible;
   }
 
   .token img {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    border-radius: 50%;
+  }
+
+  .crown {
+    position: absolute;
+    top: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: clamp(10px, 2vmin, 16px);
+    z-index: 20;
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.7));
+    animation: crownBob 1.5s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  @keyframes crownBob {
+    0%, 100% { transform: translateX(-50%) translateY(0); }
+    50% { transform: translateX(-50%) translateY(-3px); }
   }
 
   /* ---- Side Panel ---- */
@@ -886,7 +904,7 @@
   </div>
 </div>
 <div class="confetti-container" id="confetti"></div>
-<div class="version-footer">v0.4</div>
+<div class="version-footer">v0.5</div>
 
 <script>
 // ============ SOUND ENGINE (Web Audio API) ============
@@ -1439,6 +1457,35 @@ function positionAllTokens() {
     const offsetY = (i < 2 ? -8 : 8);
     tok.style.left = `${coord.x * w + offsetX - 14}px`;
     tok.style.top  = `${coord.y * h + offsetY - 14}px`;
+  });
+  updateCrown();
+}
+
+function updateCrown() {
+  // Find leader (highest pos, must be > 1 and strictly ahead)
+  let maxPos = 0;
+  let leaderCount = 0;
+  let leaderIdx = -1;
+  players.forEach((p, i) => {
+    if (p.pos > maxPos) { maxPos = p.pos; leaderCount = 1; leaderIdx = i; }
+    else if (p.pos === maxPos) { leaderCount++; }
+  });
+  const hasLeader = maxPos > 1 && leaderCount === 1;
+
+  players.forEach((_, i) => {
+    const tok = document.getElementById(`token${i}`);
+    if (!tok) return;
+    const existing = tok.querySelector('.crown');
+    if (hasLeader && i === leaderIdx) {
+      if (!existing) {
+        const crown = document.createElement('span');
+        crown.className = 'crown';
+        crown.textContent = '👑';
+        tok.appendChild(crown);
+      }
+    } else if (existing) {
+      existing.remove();
+    }
   });
 }
 
