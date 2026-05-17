@@ -286,7 +286,7 @@
     50% { transform: scale(1.2); opacity: 1; }
   }
 
-  .cell .goat-icon {
+  .cell .trap-icon {
     position: absolute;
     inset: 0;
     display: flex;
@@ -294,12 +294,25 @@
     justify-content: center;
     font-size: clamp(1.8rem, 5vmin, 3rem);
     opacity: .85;
-    filter: drop-shadow(0 2px 4px rgba(255, 64, 96, .4));
-    animation: goatBob 1.5s ease-in-out infinite;
     z-index: 1;
   }
 
-  @keyframes goatBob {
+  .cell .trap-icon.goat-icon {
+    filter: drop-shadow(0 2px 4px rgba(255, 64, 96, .4));
+    animation: trapBob 1.5s ease-in-out infinite;
+  }
+
+  .cell .trap-icon.tomato-icon {
+    filter: drop-shadow(0 2px 4px rgba(255, 99, 71, .5));
+    animation: trapBob 1.5s ease-in-out infinite 0.3s;
+  }
+
+  .cell .trap-icon.pepper-icon {
+    filter: drop-shadow(0 2px 4px rgba(220, 20, 60, .5));
+    animation: trapBob 1.5s ease-in-out infinite 0.6s;
+  }
+
+  @keyframes trapBob {
     0%, 100% { transform: translateY(0) scale(1); }
     50% { transform: translateY(-3px) scale(1.08); }
   }
@@ -904,7 +917,7 @@
   </div>
 </div>
 <div class="confetti-container" id="confetti"></div>
-<div class="version-footer">v0.5</div>
+<div class="version-footer">v0.6</div>
 
 <script>
 // ============ SOUND ENGINE (Web Audio API) ============
@@ -1048,12 +1061,16 @@ let LADDERS = {};
 let CHUTES = {};
 let STAR_SQUARES = new Set();
 let GOAT_SQUARE = null;
+let TOMATO_SQUARE = null;
+let PEPPER_SQUARE = null;
 
 function generateBoard() {
   LADDERS = {};
   CHUTES = {};
   STAR_SQUARES = new Set();
   GOAT_SQUARE = null;
+  TOMATO_SQUARE = null;
+  PEPPER_SQUARE = null;
   const used = new Set([1, 100]);
 
   function pickFree() {
@@ -1115,8 +1132,12 @@ function generateBoard() {
     STAR_SQUARES.add(pickFree());
   }
 
-  // Generate 1 goat square (sends player back to start)
+  // Generate 1 goat square (sends Johnny & Meme back to start)
   GOAT_SQUARE = pickFree();
+  // Generate 1 tomato square (sends Ima back to start)
+  TOMATO_SQUARE = pickFree();
+  // Generate 1 pepper square (sends Aba back to start)
+  PEPPER_SQUARE = pickFree();
 }
 
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
@@ -1246,7 +1267,15 @@ function buildBoard() {
       }
       if (num === GOAT_SQUARE) {
         cell.style.background = 'rgba(255, 64, 96, .18)';
-        cell.innerHTML += `<span class="goat-icon">🐐</span>`;
+        cell.innerHTML += `<span class="trap-icon goat-icon">🐐</span>`;
+      }
+      if (num === TOMATO_SQUARE) {
+        cell.style.background = 'rgba(255, 99, 71, .18)';
+        cell.innerHTML += `<span class="trap-icon tomato-icon">🍅</span>`;
+      }
+      if (num === PEPPER_SQUARE) {
+        cell.style.background = 'rgba(220, 20, 60, .18)';
+        cell.innerHTML += `<span class="trap-icon pepper-icon">🌶️</span>`;
       }
 
       board.appendChild(cell);
@@ -1685,9 +1714,31 @@ async function movePlayer(idx, steps) {
     }
   }
 
-  // Check goat square — sends player back to start!
-  if (p.pos === GOAT_SQUARE) {
+  // Check goat square — sends Johnny & Meme back to start!
+  if (p.pos === GOAT_SQUARE && (p.power === 'shield' || p.power === 'double')) {
     addLog(`🐐 <strong>${p.name}</strong> נתקל/ה בעז! חוזר/ת להתחלה!`);
+    SFX.snakeBite();
+    await sleep(500);
+    p.pos = 1;
+    positionAllTokens();
+    updateScoreboard();
+    return;
+  }
+
+  // Check tomato square — sends Ima back to start!
+  if (p.pos === TOMATO_SQUARE && p.power === 'autowin') {
+    addLog(`🍅 <strong>${p.name}</strong> נתקל/ה בעגבנייה! חוזר/ת להתחלה!`);
+    SFX.snakeBite();
+    await sleep(500);
+    p.pos = 1;
+    positionAllTokens();
+    updateScoreboard();
+    return;
+  }
+
+  // Check pepper square — sends Aba back to start!
+  if (p.pos === PEPPER_SQUARE && p.power === 'swap') {
+    addLog(`🌶️ <strong>${p.name}</strong> נתקל/ה בפלפל! חוזר/ת להתחלה!`);
     SFX.snakeBite();
     await sleep(500);
     p.pos = 1;
