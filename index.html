@@ -286,6 +286,24 @@
     50% { transform: scale(1.2); opacity: 1; }
   }
 
+  .cell .goat-icon {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: clamp(1.8rem, 5vmin, 3rem);
+    opacity: .85;
+    filter: drop-shadow(0 2px 4px rgba(255, 64, 96, .4));
+    animation: goatBob 1.5s ease-in-out infinite;
+    z-index: 1;
+  }
+
+  @keyframes goatBob {
+    0%, 100% { transform: translateY(0) scale(1); }
+    50% { transform: translateY(-3px) scale(1.08); }
+  }
+
   /* ---- Mini-game overlay ---- */
   .minigame-overlay {
     display: none;
@@ -868,7 +886,7 @@
   </div>
 </div>
 <div class="confetti-container" id="confetti"></div>
-<div class="version-footer">v0.3</div>
+<div class="version-footer">v0.4</div>
 
 <script>
 // ============ SOUND ENGINE (Web Audio API) ============
@@ -1210,7 +1228,7 @@ function buildBoard() {
       }
       if (num === GOAT_SQUARE) {
         cell.style.background = 'rgba(255, 64, 96, .18)';
-        cell.innerHTML += `<span class="star-icon">🐐</span>`;
+        cell.innerHTML += `<span class="goat-icon">🐐</span>`;
       }
 
       board.appendChild(cell);
