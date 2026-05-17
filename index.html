@@ -734,6 +734,17 @@
     100% { transform: translateY(105vh) rotate(720deg); opacity: 0; }
   }
 
+  .version-footer {
+    position: fixed;
+    bottom: 4px;
+    left: 8px;
+    font-size: .6rem;
+    color: rgba(255, 255, 255, .2);
+    font-family: 'Nunito', sans-serif;
+    z-index: 0;
+    direction: ltr;
+  }
+
   /* Responsive — large tablets landscape (1024+): board + side panel side-by-side */
   @media (min-width: 1024px) {
     :root { --board-size: min(80vh, 720px); }
@@ -857,6 +868,7 @@
   </div>
 </div>
 <div class="confetti-container" id="confetti"></div>
+<div class="version-footer">v0.3</div>
 
 <script>
 // ============ SOUND ENGINE (Web Audio API) ============
