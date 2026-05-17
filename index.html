@@ -794,6 +794,27 @@
     direction: ltr;
   }
 
+  .music-btn {
+    position: fixed;
+    bottom: 12px;
+    right: 12px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 215, 0, .5);
+    background: rgba(45, 20, 80, .85);
+    font-size: 1.3rem;
+    cursor: pointer;
+    z-index: 1000;
+    transition: transform .2s, box-shadow .2s;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .4);
+  }
+
+  .music-btn:hover {
+    transform: scale(1.15);
+    box-shadow: 0 4px 16px rgba(255, 215, 0, .3);
+  }
+
   /* Responsive — large tablets landscape (1024+): board + side panel side-by-side */
   @media (min-width: 1024px) {
     :root { --board-size: min(80vh, 720px); }
@@ -917,7 +938,8 @@
   </div>
 </div>
 <div class="confetti-container" id="confetti"></div>
-<div class="version-footer">v0.7</div>
+<button class="music-btn" id="musicBtn" onclick="toggleBGMusic()">🔇</button>
+<div class="version-footer">v0.8</div>
 
 <script>
 // ============ SOUND ENGINE (Web Audio API) ============
@@ -1047,6 +1069,104 @@ const SFX = {
     playTone(200, 0.2, 'square', 0.1);
   },
 };
+
+// ============ BACKGROUND MUSIC (procedural chiptune loop) ============
+let bgMusic = { playing: false, intervalId: null, gainNode: null };
+
+function startBGMusic() {
+  if (bgMusic.playing) return;
+  ensureAudio();
+
+  const masterGain = audioCtx.createGain();
+  masterGain.gain.value = 0.08;
+  masterGain.connect(audioCtx.destination);
+  bgMusic.gainNode = masterGain;
+
+  // Cheerful pentatonic melody in C major
+  const melodyNotes = [
+    523, 587, 659, 784, 880,   // C5 D5 E5 G5 A5
+    784, 659, 587, 523, 440,   // G5 E5 D5 C5 A4
+    523, 659, 784, 880, 1047,  // C5 E5 G5 A5 C6
+    880, 784, 659, 523, 587,   // A5 G5 E5 C5 D5
+  ];
+  const bassNotes = [
+    131, 131, 165, 165, 196, 196, 220, 220,  // C3 C3 E3 E3 G3 G3 A3 A3
+    131, 131, 165, 165, 196, 196, 175, 175,   // repeat with F3
+  ];
+
+  let melodyIdx = 0;
+  let bassIdx = 0;
+  let beat = 0;
+
+  function playBeat() {
+    if (!bgMusic.playing) return;
+    const now = audioCtx.currentTime;
+
+    // Melody (every beat)
+    const mOsc = audioCtx.createOscillator();
+    const mGain = audioCtx.createGain();
+    mOsc.type = 'triangle';
+    mOsc.frequency.value = melodyNotes[melodyIdx % melodyNotes.length];
+    mGain.gain.setValueAtTime(0.3, now);
+    mGain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    mOsc.connect(mGain);
+    mGain.connect(bgMusic.gainNode);
+    mOsc.start(now);
+    mOsc.stop(now + 0.3);
+    melodyIdx++;
+
+    // Bass (every 2 beats)
+    if (beat % 2 === 0) {
+      const bOsc = audioCtx.createOscillator();
+      const bGain = audioCtx.createGain();
+      bOsc.type = 'sine';
+      bOsc.frequency.value = bassNotes[bassIdx % bassNotes.length];
+      bGain.gain.setValueAtTime(0.4, now);
+      bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+      bOsc.connect(bGain);
+      bGain.connect(bgMusic.gainNode);
+      bOsc.start(now);
+      bOsc.stop(now + 0.6);
+      bassIdx++;
+    }
+
+    // Little chirp accent (every 4 beats)
+    if (beat % 4 === 0) {
+      const aOsc = audioCtx.createOscillator();
+      const aGain = audioCtx.createGain();
+      aOsc.type = 'square';
+      aOsc.frequency.value = melodyNotes[melodyIdx % melodyNotes.length] * 2;
+      aGain.gain.setValueAtTime(0.06, now);
+      aGain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      aOsc.connect(aGain);
+      aGain.connect(bgMusic.gainNode);
+      aOsc.start(now);
+      aOsc.stop(now + 0.12);
+    }
+
+    beat++;
+  }
+
+  bgMusic.playing = true;
+  bgMusic.intervalId = setInterval(playBeat, 300);
+  playBeat();
+}
+
+function stopBGMusic() {
+  bgMusic.playing = false;
+  if (bgMusic.intervalId) { clearInterval(bgMusic.intervalId); bgMusic.intervalId = null; }
+  if (bgMusic.gainNode) { bgMusic.gainNode.gain.value = 0; bgMusic.gainNode = null; }
+}
+
+function toggleBGMusic() {
+  if (bgMusic.playing) {
+    stopBGMusic();
+    document.getElementById('musicBtn').textContent = '🔇';
+  } else {
+    startBGMusic();
+    document.getElementById('musicBtn').textContent = '🎵';
+  }
+}
 
 // ============ BRAWL STARS CHARACTERS ============
 const BRAWLERS = [
@@ -1232,6 +1352,8 @@ function startGame() {
   updateUI();
   addLog(`🎮 המשחק התחיל עם ${players.length} לוחמים!`);
   if (debugMode) document.getElementById('debugControls').style.display = 'flex';
+  startBGMusic();
+  document.getElementById('musicBtn').textContent = '🎵';
 }
 
 // ============ BUILD BOARD ============
@@ -2215,6 +2337,8 @@ function spawnConfetti() {
 }
 
 function resetGame() {
+  stopBGMusic();
+  document.getElementById('musicBtn').textContent = '🔇';
   document.getElementById('winnerOverlay').classList.remove('show');
   document.getElementById('confetti').innerHTML = '';
   document.getElementById('game').style.display = 'none';
