@@ -999,11 +999,13 @@ const BRAWLERS = [
 let LADDERS = {};
 let CHUTES = {};
 let STAR_SQUARES = new Set();
+let GOAT_SQUARE = null;
 
 function generateBoard() {
   LADDERS = {};
   CHUTES = {};
   STAR_SQUARES = new Set();
+  GOAT_SQUARE = null;
   const used = new Set([1, 100]);
 
   function pickFree() {
@@ -1064,6 +1066,9 @@ function generateBoard() {
   for (let i = 0; i < 10; i++) {
     STAR_SQUARES.add(pickFree());
   }
+
+  // Generate 1 goat square (sends player back to start)
+  GOAT_SQUARE = pickFree();
 }
 
 const DICE_FACES = ['⚀','⚁','⚂','⚃','⚄','⚅'];
@@ -1190,6 +1195,10 @@ function buildBoard() {
       if (STAR_SQUARES.has(num)) {
         cell.classList.add('star-cell');
         cell.innerHTML += `<span class="star-icon">⭐</span>`;
+      }
+      if (num === GOAT_SQUARE) {
+        cell.style.background = 'rgba(255, 64, 96, .18)';
+        cell.innerHTML += `<span class="star-icon">🐐</span>`;
       }
 
       board.appendChild(cell);
@@ -1597,6 +1606,17 @@ async function movePlayer(idx, steps) {
       positionAllTokens();
       updateScoreboard();
     }
+  }
+
+  // Check goat square — sends player back to start!
+  if (p.pos === GOAT_SQUARE) {
+    addLog(`🐐 <strong>${p.name}</strong> נתקל/ה בעז! חוזר/ת להתחלה!`);
+    SFX.snakeBite();
+    await sleep(500);
+    p.pos = 1;
+    positionAllTokens();
+    updateScoreboard();
+    return;
   }
 
   // Check star square (mini-game) — Ima's auto-win triggers here
